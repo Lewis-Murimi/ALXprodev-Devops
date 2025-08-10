@@ -1,6 +1,6 @@
 #!/bin/bash
 # batchProcessing-0x04
-# Parallel fetching with proper process handling and cleanup
+# Parallel fetching of Pokémon data with process management (jobs, kill, wait)
 
 POKEMONS=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 API_BASE="https://pokeapi.co/api/v2/pokemon"
@@ -8,9 +8,7 @@ OUTPUT_DIR="pokemon_data_parallel"
 ERROR_LOG="errors_parallel.txt"
 
 mkdir -p "$OUTPUT_DIR"
-: > "$ERROR_LOG"  # Clear previous log
-
-pids=()  # To store background process IDs
+: > "$ERROR_LOG"  # Clear error log
 
 fetch_pokemon() {
     local pokemon=$1
@@ -22,17 +20,19 @@ fetch_pokemon() {
     fi
 }
 
-# Launch fetches in parallel and record their PIDs
+# Launch all in background
 for pokemon in "${POKEMONS[@]}"; do
     fetch_pokemon "$pokemon" &
-    pids+=($!)
 done
 
-# Wait for all processes, kill if needed
-for pid in "${pids[@]}"; do
-    if ! wait "$pid"; then
-        echo "Process $pid failed. Killing..."
-        kill "$pid" 2>/dev/null
+# Show running jobs for monitoring
+jobs
+
+# Wait for all background jobs and clean up failed ones
+for job in $(jobs -p); do
+    if ! wait "$job"; then
+        echo "Job $job failed. Killing..."
+        kill "$job" 2>/dev/null
     fi
 done
 
